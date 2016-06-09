@@ -1,8 +1,8 @@
-# ella (alpha)
+# multipack (alpha)
 
-**Monorepo package manager.** ella wraps [npm](https://npmjs.org) to work with dependencies and scripts declared in multiple `package.json` files. This is useful for *monorepos*: large projects composed of multiple related yet independent packages (definitions vary).
+**Monorepo package manager.** multipack wraps [npm](https://npmjs.org) to work with dependencies and scripts declared in multiple `package.json` files. This is useful for *monorepos*: large projects composed of multiple related yet independent packages (definitions vary).
 
-[![npm status](http://img.shields.io/npm/v/ella.svg?style=flat-square)](https://www.npmjs.org/package/ella) [![node](https://img.shields.io/node/v/ella.svg?style=flat-square)](https://www.npmjs.org/package/ella)
+[![npm status](http://img.shields.io/npm/v/multipack.svg?style=flat-square)](https://www.npmjs.org/package/multipack) [![node](https://img.shields.io/node/v/multipack.svg?style=flat-square)](https://www.npmjs.org/package/multipack)
 
 **Highlights**
 
@@ -21,8 +21,8 @@
 - [install](#install)
 - [command line](#command-line)
 	- [global options](#global-options)
-	- [`ella install`](#ella-install)
-	- [`ella install [<name> ..] [--save*] [--to <pkg>]`](#ella-install-name-save-to-pkg)
+	- [`multipack install`](#multipack-install)
+	- [`multipack install [<name> ..] [--save*] [--to <pkg>]`](#multipack-install-name-save-to-pkg)
 		- [partial install (w.i.p.)](#partial-install-wip)
 		- [internal dependencies](#internal-dependencies)
 		- [registry override](#registry-override)
@@ -41,7 +41,7 @@ Suppose we have the following directory structure, with `dream-server` depending
         package.json
     package.json
 
-The `ella install` command finds nested packages, collects the dependencies listed in each `package.json` and installs them at the root:
+The `multipack install` command finds nested packages, collects the dependencies listed in each `package.json` and installs them at the root:
 
     packages/
     node_modules/
@@ -49,7 +49,7 @@ The `ella install` command finds nested packages, collects the dependencies list
       yamljs/
       gulp/
 
-If two packages depend on different versions, ella installs the latest version at the root and the other in a package's `node_modules`.
+If two packages depend on different versions, multipack installs the latest version at the root and the other in a package's `node_modules`.
 
     packages/
       dream-server/
@@ -72,9 +72,9 @@ If `dream-server` explicitly depends on `super-config`:
 }
 ```
 
-And the version of `super-config` matches `~1.0.0`, then ella creates a symbolic link at `packages/dream-server/node_modules/super-config` to `packages/super-config`. Now you can `require('super-config')` from JavaScript code in `dream-server`.
+And the version of `super-config` matches `~1.0.0`, then multipack creates a symbolic link at `packages/dream-server/node_modules/super-config` to `packages/super-config`. Now you can `require('super-config')` from JavaScript code in `dream-server`.
 
-Side note: to prevent `npm` from installing packages from the registry after deduping (if some deep dependency depends on a monorepo package name), ella also creates a symbolic link ([sorta](docs/npm-and-symlinks.md)) for each package in the root `node_modules`. Which means - though this should be considered a side-effect and not relied upon - that you can actually `require('super-config')` or `require('dream-server')` from anywhere in the monorepo.
+Side note: to prevent `npm` from installing packages from the registry after deduping (if some deep dependency depends on a monorepo package name), multipack also creates a symbolic link ([sorta](docs/npm-and-symlinks.md)) for each package in the root `node_modules`. Which means - though this should be considered a side-effect and not relied upon - that you can actually `require('super-config')` or `require('dream-server')` from anywhere in the monorepo.
 
     node_modules/
       dream-server/ -> packages/dream-server/
@@ -82,7 +82,7 @@ Side note: to prevent `npm` from installing packages from the registry after ded
 
 **Registry override**
 
-If however, the on-disk `super-config` has the version `2.0.0`, which doesn't match the `~1.0.0` that `dream-server` wants, then ella assumes `super-config` has been published to npm, and attempts to `npm install` it to `dream-server/node_modules`.
+If however, the on-disk `super-config` has the version `2.0.0`, which doesn't match the `~1.0.0` that `dream-server` wants, then multipack assumes `super-config` has been published to npm, and attempts to `npm install` it to `dream-server/node_modules`.
 
 ## further reading
 
@@ -91,13 +91,13 @@ If however, the on-disk `super-config` has the version `2.0.0`, which doesn't ma
 
 ## install
 
-Install ella globally with [npm](https://npmjs.org):
+Install multipack globally with [npm](https://npmjs.org):
 
 ```bash
-$ npm install -g ella
+$ npm install -g multipack
 ```
 
-ella uses this same `npm` binary. We suggest using npm 3, for better deduping. Unless you run into issues with symbolic links and npm refusing to remove things - then please let us know (with an example to reproduce) and revert back to npm 2. To check your version of npm or install another, run:
+multipack uses this same `npm` binary. We suggest using npm 3, for better deduping. Unless you run into issues with symbolic links and npm refusing to remove things - then please let us know (with an example to reproduce) and revert back to npm 2. To check your version of npm or install another, run:
 
 ```bash
 $ npm -v
@@ -115,11 +115,11 @@ The following flags are available for most commands:
 - `--verbose`: verbose output (unrelated to npm's own log level);
 - `--ignore-scripts`: do not run lifecycle scripts.
 
-### `ella install`
+### `multipack install`
 
 Install all dependencies and create symbolic links. Aliased as `i`.
 
-### `ella install [<name> ..] [--save*] [--to <pkg>]`
+### `multipack install [<name> ..] [--save*] [--to <pkg>]`
 
 Options:
 
@@ -131,19 +131,19 @@ Options:
 Install external or internal dependencies and optionally save them to target package(s). Targets are identified by their package name. If a target is specified, `--save` is implied. Repeat `--to` to target multiple packages. The following command installs `debug` and adds it to the `dependencies` of `packages/mono-db/package.json` and `packages/mono-server/package.json`:
 
 ```bash
-$ ella i debug --to mono-db --to mono-server
+$ multipack i debug --to mono-db --to mono-server
 ```
 
 This command just installs `debug`:
 
 ```bash
-$ ella i debug
+$ multipack i debug
 ```
 
 Or save it to the root package - exactly like `npm i debug --save`:
 
 ```bash
-$ ella i debug --save
+$ multipack i debug --save
 ```
 
 Almost every `name` format from npm is supported:
@@ -155,14 +155,14 @@ Almost every `name` format from npm is supported:
 - local or remote tarball
 - local directory (untested, likely to conflict)
 
-The only exception: ella doesn't handle raw git URLs like `git://some-server.com/`.
+The only exception: multipack doesn't handle raw git URLs like `git://some-server.com/`.
 
 #### partial install (w.i.p.)
 
-If `name` matches a monorepo package, ella installs the dependencies of that package and any packages that it depends upon.
+If `name` matches a monorepo package, multipack installs the dependencies of that package and any packages that it depends upon.
 
 ```bash
-$ ella i mono-db mono-server
+$ multipack i mono-db mono-server
 ```
 
 #### internal dependencies
@@ -170,35 +170,35 @@ $ ella i mono-db mono-server
 If `name` matches a monorepo package and a target is specified, then `name` is saved to the target's `package.json` (as `~[version]` by default) and installed as a relative symbolic link. For example, the following creates a link at `mono-server/node_modules/mono-db`:
 
 ```bash
-$ ella i mono-db --to mono-server
+$ multipack i mono-db --to mono-server
 ```
 
 #### registry override
 
-If `name@<version>` matches a monorepo package and `version` doesn't match the on-disk version, ella assumes the package has been published to npm and attempts to install it. The package is either installed to the root or the target's `node_modules` (like a regular dependency) - replacing the symbolic link that may be there (TODO).
+If `name@<version>` matches a monorepo package and `version` doesn't match the on-disk version, multipack assumes the package has been published to npm and attempts to install it. The package is either installed to the root or the target's `node_modules` (like a regular dependency) - replacing the symbolic link that may be there (TODO).
 
 ```bash
-$ ella i mono-db@~1.0.2
+$ multipack i mono-db@~1.0.2
 ```
 
 #### hashing (experimental)
 
-Specify `--hash` to compute a hash per package, based on the contents of its `package.json` as well as git diff if in a git directory. The hash is saved to a hidden file in `node_modules`. Subsequent times that you run `install` with `--hash`, ella will skip installation if the hash didn't change. Note it can't detect mutation of `node_modules` by external tools (including `npm` used by itself).
+Specify `--hash` to compute a hash per package, based on the contents of its `package.json` as well as git diff if in a git directory. The hash is saved to a hidden file in `node_modules`. Subsequent times that you run `install` with `--hash`, multipack will skip installation if the hash didn't change. Note it can't detect mutation of `node_modules` by external tools (including `npm` used by itself).
 
 ```bash
-$ ella i --hash
+$ multipack i --hash
 e Installing dependencies to root
 e Installing dependencies to a
 e Installing dependencies to b
 
 $ echo change > readme.md
-$ ella i --hash
+$ multipack i --hash
 e Installing dependencies to root
 e No changes since last install of a
 e No changes since last install of b
 ```
 
-### `ella version [<version> | <type>]`
+### `multipack version [<version> | <type>]`
 
 Like `npm version`, but for all packages:
 
@@ -207,7 +207,7 @@ Like `npm version`, but for all packages:
 - Stages the `package.json` files to git;
 - Spawns `npm version` on the root.
 
-Without any arguments, `ella version` prints the current root version.
+Without any arguments, `multipack version` prints the current root version.
 
 ## license
 

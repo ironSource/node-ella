@@ -43,12 +43,12 @@ const join = path.join
     , basename = path.basename
 
 const ROOT = '.'
-    , FILE_PREFIX = '.ella'
+    , FILE_PREFIX = '.multipack'
     , HASH_FILE = FILE_PREFIX + '-package-hash'
     , TYPE_ORDER = ['production', 'dev', 'optional', 'peer']
 
-function Ella(opts) {
-  if (!(this instanceof Ella)) return new Ella(opts)
+function Multipack(opts) {
+  if (!(this instanceof Multipack)) return new Multipack(opts)
   if (!opts) opts = {}
 
   if (opts.verbose) log.setVerbose(true)
@@ -70,8 +70,8 @@ function Ella(opts) {
   this.linkAnalyzer = new LinkAnalyzer(this.cwd, this.names, this.linkState)
 }
 
-module.exports = Ella
-const E = Ella.prototype
+module.exports = Multipack
+const E = Multipack.prototype
 
 E._analyze = function (task, done) {
   const tree = this.tree
@@ -212,7 +212,7 @@ E._analyze = function (task, done) {
     // log.info('subjects', subjects)
     next()
 
-    // TODO: if its `ella i babel-core --to x`
+    // TODO: if its `multipack i babel-core --to x`
     // then babel-core needs to be installed too
   }
 
@@ -864,11 +864,11 @@ E._prunePackage = function (dir, opts, next) {
           return next()
         }
 
-        // There are at most 2 hidden ella files
+        // There are at most 2 hidden multipack files
         if (files.length > 2) return next()
 
         for(let i = 0; i < files.length; i++) {
-          if (!isEllaFile(files[i])) return next()
+          if (!isMultipackFile(files[i])) return next()
         }
 
         rimraf(nm, { glob: false }, (err) => {
@@ -884,7 +884,7 @@ E._prunePackage = function (dir, opts, next) {
   })
 }
 
-function isEllaFile(file) {
+function isMultipackFile(file) {
   return file.slice(0, FILE_PREFIX.length) === FILE_PREFIX
 }
 

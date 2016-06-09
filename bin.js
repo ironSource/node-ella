@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 const app = require('commander')
-    , Ella = require('./index')
+    , Multipack = require('./index')
 
-// "ella version" is interpreted as "ella --version"..
+// "multipack version" is interpreted as "multipack --version"..
 // app.version(require('../package.json').version);
 
 app
@@ -54,12 +54,13 @@ app
 
 app.on('--help', function(){
   console.log('  Examples:\n')
-  console.log('    $ ella install')
-  console.log('    $ ella i --prod')
-  // console.log('    $ ella prune --verbose')
-  // console.log('    $ ella exec -- ls -A')
-  // console.log('    $ ella ls --depth=1')
-  // console.log('    $ ella version patch')
+  console.log('    $ multipack install')
+  console.log('    $ multipack i --prod')
+  console.log('    $ multipack version patch')
+  // console.log('    $ multipack prune --verbose')
+  // console.log('    $ multipack exec -- ls -A')
+  // console.log('    $ multipack ls --depth=1')
+  // console.log('    $ multipack version patch')
 })
 
 if (process.argv.length === 2) {
@@ -67,7 +68,7 @@ if (process.argv.length === 2) {
 }
 
 function factory() {
-  return new Ella({
+  return new Multipack({
     cwd: process.cwd(),
     production: app.production,
     verbose: app.verbose

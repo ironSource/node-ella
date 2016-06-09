@@ -1,6 +1,6 @@
 ## workaround for symbolic links
 
-Ella can also be used on normal (non-monorepo) projects, when you're frustated with npm's handling of symbolic links: ella says symbolic links are sovereign packages - don't touch their targets - and hides them from npm.
+Multipack can also be used on normal (non-monorepo) projects, when you're frustated with npm's handling of symbolic links: multipack says symbolic links are sovereign packages - don't touch their targets - and hides them from npm.
 
 npm has various issues with symbolic links.
 
