@@ -198,6 +198,17 @@ e No changes since last install of a
 e No changes since last install of b
 ```
 
+### `ella version [<version> | <type>]`
+
+Like `npm version`, but for all packages:
+
+- Increments the version number from the root `package.json`, either to an exact `version` or by [release type](https://github.com/npm/node-semver) (`major`, `premajor`, `minor`, `preminor`, `patch`, `prepatch`, or `prerelease`)
+- Updates the version number of each package, as well as internal dependencies (the semver range is set to `~x.x.x`)
+- Stages the `package.json` files to git;
+- Spawns `npm version` on the root.
+
+Without any arguments, `ella version` prints the current root version.
+
 ## license
 
 [MIT](http://opensource.org/licenses/MIT) © [ironSource](http://www.ironsrc.com/).

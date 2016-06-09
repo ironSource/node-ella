@@ -95,19 +95,6 @@ Recursively remove `node_modules` folders. If no packages names are given, all `
 
 Perform a clean install: `ella purge` followed by `ella install`.
 
-## version management
-
-### `ella version [<version> | major | minor | patch]`
-
-Like `npm version`, but for all packages:
-
-- Increments the version number from the root `package.json`
-- Updates the version number of each package, as well as internal dependencies (the semver range is set to `~x.x.x`)
-- Stages the `package.json` files to git;
-- Spawns `npm version` on the root.
-
-Without any arguments, `ella version` prints the current root version.
-
 ### `ella publish`
 
 ## npm links

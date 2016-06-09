@@ -3,6 +3,9 @@
 const app = require('commander')
     , Ella = require('./index')
 
+// "ella version" is interpreted as "ella --version"..
+// app.version(require('../package.json').version);
+
 app
   .option('--prod, --production', 'Ignore devDependencies')
   .option('--verbose', 'Verbose output')
@@ -34,6 +37,13 @@ app
       ignoreScripts: options.ignoreScripts
     })
   })
+
+app
+  .command('version [target]')
+  .description('Update version of all packages, then commit and tag')
+  .action(function(target) {
+    factory().version(target)
+  });
 
 app
   .command('prune')

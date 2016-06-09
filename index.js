@@ -76,10 +76,11 @@ const E = Ella.prototype
 E._analyze = function (task, done) {
   const tree = this.tree
       , cwd = this.cwd
-      , packages = new Map
+      , packages = this.packages = new Map
       , self = this
 
   log.verbose('Working directory: %s', cwd)
+  task.options = task.options || {}
 
   // Collect and merge dependencies
   series([
@@ -141,7 +142,7 @@ E._analyze = function (task, done) {
     const targets = task.targets = new Set
     const opts = task.options
 
-    if (opts.to.length) {
+    if (opts.to && opts.to.length) {
       let valid = true
 
       opts.to.forEach(function (target) {
@@ -428,6 +429,110 @@ E.update = function (names, opts, done) {
   this._eachPackage(task, errback(done))
 }
 
+E.version = function (targetSpec, done) {
+  done = errback(done)
+
+  // Get root version and increment
+  const current = readJSON.sync(join(this.cwd, 'package.json'), {}).version
+  const self = this
+
+  if (!current) {
+    log.warn('A root package with a version is required')
+    return done()
+  }
+
+  if (!targetSpec) {
+    console.log(current)
+    return done()
+  }
+
+  const target = increment(current, targetSpec)
+
+  if (!target) {
+    log.warn('Invalid target version: %s', targetSpec)
+    return done()
+  }
+
+  log.verbose('New version is %s', target)
+
+  this._analyze({}, err => {
+    if (err) return done(err)
+
+    const changed = new Set
+
+    self.versions.forEach((version, name) => {
+      if (self.dirs[name] === ROOT) return
+
+      const pkg = self.packages.get(name)
+      const dir = self.dirs[name]
+
+      if (setVersion(name, dir, pkg)) {
+        changed.add(dir)
+
+        if (self.dependants.has(name)) {
+          self.dependants.get(name).forEach(dependant => {
+            updateDependency(self.packages.get(dependant), name, target)
+            changed.add(self.dirs[dependant])
+          })
+        }
+      }
+    })
+
+    const files = []
+
+    const next = after(changed.size, function (err) {
+      if (err) return done(err)
+
+      dynamicSeries([
+        files.length && function add (next) {
+          self._spawnGit(self.cwd, ['add', '--'].concat(files), next)
+        },
+
+        // Update root version and git tag using npm version
+        function updateRoot (next) {
+          self._spawn(self.cwd, ['version', target, '--force', '--git-tag-version'], next)
+        }
+      ], done)
+    })
+
+    changed.forEach(dir => {
+      const name = self.names[dir]
+      const pkg = self.packages.get(name)
+      const file = join(dir, 'package.json')
+
+      files.push(file)
+      log.silly('Adding %s', file)
+      writeFileAtomic(join(self.cwd, file), JSON.stringify(pkg, null, 2) + '\n', next)
+    })
+  })
+
+  function increment (current, spec) {
+    const v = semver.valid(spec)
+    return v ? v : semver.inc(current, spec)
+  }
+
+  function setVersion (name, dir, pkg) {
+    if (pkg.version && pkg.version !== current && pkg.version !== target) {
+      log.warn('Package %s has inconsistent version: %s', name, pkg.version)
+      return false
+    }
+
+    pkg.version = target
+    return true
+  }
+
+  function updateDependency (pkg, dep, target) {
+    if (pkg.dependencies) updateDepGroup(pkg.dependencies, dep, target)
+    if (pkg.devDependencies) updateDepGroup(pkg.devDependencies, dep, target)
+    if (pkg.optionalDependencies) updateDepGroup(pkg.optionalDependencies, dep, target)
+    if (pkg.peerDependencies) updateDepGroup(pkg.peerDependencies, dep, target)
+  }
+
+  function updateDepGroup(group, dep, target) {
+    if (dep in group) group[dep] = '^' + target
+  }
+}
+
 E.prune = function (opts, done) {
   const task = {
     destructive: true,
@@ -479,9 +584,28 @@ E._packageHash = function (pkg, abs) {
   return packageHash([pkg], { dir: abs, root: this.cwd })
 }
 
-E._spawn = function (cwd, args, opts, done) {
-  done = once(done)
+E._spawnGit = function (cwd, args, opts, done) {
+  if (typeof opts === 'function') done = opts, opts = {}
 
+  done = once(done)
+  log.reset()
+
+  const child = spawn('git', args, {
+    cwd: cwd,
+    stdio: [ 'ignore', process.stdout, process.stderr ]
+  })
+
+  child.on('error', handleSpawnError(done, 'git'))
+  child.on('close', function (code) {
+    if (code) done(new SoftError('git exited with code ' + code))
+    else done()
+  })
+}
+
+E._spawn = function (cwd, args, opts, done) {
+  if (typeof opts === 'function') done = opts, opts = {}
+
+  done = once(done)
   log.reset()
 
   if (this.production) args.push('--production')
@@ -764,10 +888,14 @@ function isEllaFile(file) {
   return file.slice(0, FILE_PREFIX.length) === FILE_PREFIX
 }
 
-function handleSpawnError(cb) {
+function handleSpawnError(cb, cmd) {
+  cmd = cmd || 'npm'
+
   return function (err) {
     if (err.code === 'ENOENT') {
-      return cb(new Error('Could not spawn npm. Please make sure npm is available in PATH.'))
+      return cb(new Error(
+        `Could not spawn ${cmd}. Please make sure ${cmd} is available in PATH.`
+      ))
     }
 
     cb(err)
