@@ -6,11 +6,9 @@
 
 **Highlights**
 
-- Works like `npm`, with extra features for monorepos
 - Scans for nested packages in the working directory, so you're free to deviate from the convention to place packages in `packages/`. But a root `package.json` is required.
 - Installs npm dependencies, either to the root `node_modules` or to a package's `node_modules` if there's a version conflict
-- Installs monorepo packages (one package depending on another) as symbolic links, if the specified range matches the on-disk version
-- Otherwise, the package is installed from npm. The rough idea being: if `A` and `B` have a shared dependency `shared`, you can have `A` depend on the working version of `shared`, `B` on a published version of `shared`, then develop `A` and `shared` without breaking `B`.
+- Installs monorepo packages (one package depending on another) as symbolic links, if the specified range matches the on-disk version. Otherwise, the package is installed from npm.
 
 **Table of contents**
 
@@ -77,12 +75,6 @@ If `dream-server` explicitly depends on `super-config`:
 
 And the version of `super-config` matches `~1.0.0`, then multipack creates a symbolic link at `packages/dream-server/node_modules/super-config` to `packages/super-config`. Now you can `require('super-config')` from JavaScript code in `dream-server`.
 
-Side note: to prevent `npm` from installing packages from the registry after deduping (if some deep dependency depends on a monorepo package name), multipack also creates a symbolic link ([sorta](docs/npm-and-symlinks.md)) for each package in the root `node_modules`. Which means - though this should be considered a side-effect and not relied upon - that you can actually `require('super-config')` or `require('dream-server')` from anywhere in the monorepo.
-
-    node_modules/
-      dream-server/ -> packages/dream-server/
-      super-config/ -> packages/super-config/
-
 **Registry override**
 
 If however, the on-disk `super-config` has the version `2.0.0`, which doesn't match the `~1.0.0` that `dream-server` wants, then multipack assumes `super-config` has been published to npm, and attempts to `npm install` it to `dream-server/node_modules`.
@@ -100,7 +92,7 @@ Install multipack globally with [npm](https://npmjs.org):
 $ npm install -g multipack
 ```
 
-multipack uses this same `npm` binary. We suggest using npm 3, for better deduping. Unless you run into issues with symbolic links and npm refusing to remove things - then please let us know (with an example to reproduce) and revert back to npm 2. To check your version of npm or install another, run:
+multipack uses this same `npm` binary. We recommend npm 3, for better deduping. To check your version of npm or install another, run:
 
 ```bash
 $ npm -v
@@ -131,7 +123,9 @@ Options:
 - `-O --save-optional`
 - `-E --save-exact`
 
-Install external or internal dependencies and optionally save them to target package(s). Targets are identified by their package name. If a target is specified, `--save` is implied. Repeat `--to` to target multiple packages. The following command installs `debug` and adds it to the `dependencies` of `packages/mono-db/package.json` and `packages/mono-server/package.json`:
+Install external or internal dependencies and optionally save them to target package(s). Targets are identified by their package name. If a target is specified, `--save` is implied. Repeat `--to` to target multiple packages.
+
+The following command installs `debug` and adds it to the `dependencies` of `packages/mono-db/package.json` and `packages/mono-server/package.json`:
 
 ```bash
 $ multipack i debug --to mono-db --to mono-server
