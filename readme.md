@@ -27,6 +27,9 @@
 		- [internal dependencies](#internal-dependencies)
 		- [registry override](#registry-override)
 		- [hashing (experimental)](#hashing-experimental)
+	- [`multipack version [<version> | <type>]`](#multipack-version-version-type)
+	- [`multipack link [<name> ..]`](#multipack-link-name-)
+- [license](#license)
 
 <!-- /TOC -->
 
@@ -208,6 +211,19 @@ Like `npm version`, but for all packages:
 - Spawns `npm version` on the root.
 
 Without any arguments, `multipack version` prints the current root version.
+
+### `multipack link [<name> ..]`
+
+In the root `node_modules`, as well as in any packages depending on `name`, create a symbolic link to the globally installed or linked `name`. E.g.:
+
+```bash
+cd ~/thing
+npm link
+cd ~/monorepo
+multipack link thing
+```
+
+The reverse, creating a global link to a monorepo package, is not supported yet.
 
 ## license
 

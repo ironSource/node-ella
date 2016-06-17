@@ -46,6 +46,13 @@ app
   });
 
 app
+  .command('link [name...]')
+  .description('Link global dependencies')
+  .action(function link (names, options) {
+    factory().externalLink(names)
+  })
+
+app
   .command('prune')
   .description('Prune dependencies')
   .action(function prune () {

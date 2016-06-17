@@ -22,6 +22,7 @@ const bail = require('bail')
     , split2 = require('split2')
     , pathIsInside = require('path-is-inside')
     , sortedObject = require('sorted-object')
+    , globalModules = require('global-modules')
 
 const getPackages = require('./lib/get-packages')
     , packageName = require('./lib/package-name')
@@ -530,6 +531,70 @@ E.version = function (targetSpec, done) {
 
   function updateDepGroup(group, dep, target) {
     if (dep in group) group[dep] = '^' + target
+  }
+}
+
+E.externalLink = function (names, done) {
+  done = errback(done)
+  if (!names.length) return done(new SoftError('Not implemented'))
+
+  const self = this
+
+  this._analyze({}, err => {
+    if (err) return done(err)
+    eachSeries(names, findLinkTarget, done)
+  })
+
+  function findLinkTarget(name, next) {
+    findGlobalModule(name, function (err, target) {
+      if (err) next(err)
+      else createLinks(name, target, next)
+    })
+  }
+
+  function createLinks(name, target, next) {
+    log.info('Target is %s', target)
+
+    // In root, and each package that depends on <name>, create a link
+    const dependants = self.dependants.get(name) || []
+    const dirs = [ROOT]
+
+    dependants.forEach(pkg => { dirs.push(self.dirs[pkg]) })
+
+    eachSeries(dirs, createLinkIn, next)
+
+    function createLinkIn(dir, next) {
+      const rel = join(dir, 'node_modules', name)
+      const link = join(self.cwd, rel)
+
+      log.info('Creating link %s', rel)
+
+      fs.mkdir(dirname(link), function (err) {
+        if (err && err.code !== 'EEXIST') return next(err)
+        if (!err) return symlink(target, link, next)
+
+        rimraf(link, { glob: false }, function (err) {
+          if (err) next(err)
+          else symlink(target, link, next)
+        })
+      })
+    }
+  }
+
+  function findGlobalModule (name, done) {
+    const path = join(globalModules, name)
+
+    fs.access(path, function (err) {
+      if (!err) return done(null, path)
+
+      // Hack for nvm-windows (globalModules is incorrect)
+      const path2 = resolve(dirname(process.execPath), 'node_modules', name)
+
+      fs.access(path2, function (err) {
+        if (!err) done(null, path2)
+        else done(new Error('Could not find global module: ' + name))
+      })
+    })
   }
 }
 
