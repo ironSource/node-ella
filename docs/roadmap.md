@@ -31,9 +31,6 @@
 	- [`multipack execute|exec -- <command>`](#multipack-executeexec-command)
 - [navigation](#navigation)
 	- [`multipack [cd | pushd | popd] <fuzzy>`](#multipack-cd-pushd-popd-fuzzy)
-- [packing and shrinkwrapping](#packing-and-shrinkwrapping)
-	- [`multipack pack`](#multipack-pack)
-	- [`multipack box|unbox`](#multipack-boxunbox)
 - [options and config](#options-and-config)
 - [misc](#misc)
 
@@ -151,11 +148,6 @@ Also:
 ## navigation
 
 ### `multipack [cd | pushd | popd] <fuzzy>`
-
-## packing and shrinkwrapping
-
-### `multipack pack`
-### `multipack box|unbox`
 
 ## options and config
 
