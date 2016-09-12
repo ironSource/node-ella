@@ -31,6 +31,8 @@ const getPackages = require('./lib/get-packages')
     , LinkAnalyzer = require('./lib/link-state-analyzer')
     , Resolver = require('./lib/resolver')
     , replacer = require('./lib/package-replacer')
+    , Packer = require('./lib/packer')
+    , Scripts = require('./lib/scripts')
     , SoftError = require('./lib/soft-error')
     , readJSON = require('./lib/read-json')
     , symlink = require('./lib/symlink')
@@ -71,6 +73,14 @@ function Multipack(opts) {
   this.resolver = new Resolver(this.cwd, this.dirs, this.versions)
   this.linkState = new LinkState(this.cwd, this.dirs)
   this.linkAnalyzer = new LinkAnalyzer(this.cwd, this.names, this.linkState)
+
+  Object.defineProperty(this, 'packer', {
+    get() { return this._packer || (this._packer = new Packer(this)) }
+  })
+
+  Object.defineProperty(this, 'scripts', {
+    get() { return this._scripts || (this._scripts = new Scripts) }
+  })
 }
 
 module.exports = Multipack
@@ -613,6 +623,63 @@ E.prune = function (opts, done) {
   this._eachPackage(task, errback(done))
 }
 
+E.pack = function (name, opts, done) {
+  if (typeof opts === 'function') done = opts, opts = null
+  this.bundle(name, xtend(opts, { bundle: false }), done)
+}
+
+E.bundle = function (names, opts, done) {
+  if (typeof opts === 'function') done = opts, opts = null
+
+  opts = xtend({ bundle: true }, opts)
+  done = errback(done)
+
+  if (this.production && opts.production !== false) {
+    opts.production = true
+  }
+
+  let builtRoot = false
+
+  const task = {
+    destructive: false,
+    link: false,
+    filter: [ packageFilter2(this.cwd, names, ROOT) ],
+    work: (dir, next) => {
+      series([
+        (next) => {
+          if (!opts.build) return next()
+
+          // TODO: run target's build script, fallback to root
+          if (builtRoot) return next()
+          else builtRoot = true
+
+          this.scripts.run(this.cwd, ROOT, 'build', opts, next)
+        },
+
+        (next) => {
+          this.packer.bundle(this.cwd, dir, this.names[dir], opts, next)
+        }
+      ], next)
+    }
+  }
+
+  this._eachPackage(task, done)
+}
+
+E.getLocalDependencies = function (dir, opts, acc) {
+  if (!opts) opts = {}
+  if (!acc) acc = new Map
+
+  if (this.links.has(dir)) this.links.get(dir).forEach(name => {
+    if (!acc.has(name)) {
+      acc.set(name, this.dirs[name])
+      if (opts.deep) this.getLocalDependencies(this.dirs[name], opts, acc)
+    }
+  })
+
+  return acc
+}
+
 E._installPackage = function (dir, opts, next) {
   this._logPackageAction('Installing dependencies to %s', dir)
   this._spawn(join(this.cwd, dir), ['install'], opts, next)
@@ -953,6 +1020,24 @@ function packageFilter(names, fallback) {
     }
 
     return names.indexOf(pkgName) >= 0
+  }
+}
+
+function packageFilter2(cwd, names, fallback) {
+  names = [].concat(names).filter(Boolean)
+  if (!names.length) names = [].concat(fallback).filter(Boolean)
+
+  const slash = /\\|\//
+  const dirs = names.filter(name => slash.test(name)).map(path => {
+    return relative(cwd, resolve(cwd, path)) || ROOT
+  })
+
+  return function filterPackages2(dir, pkgName) {
+    if (dir === ROOT && names.indexOf(ROOT) >= 0) return true
+    if (names.indexOf(pkgName) >= 0) return true
+    if (dirs.indexOf(dir) >= 0) return true
+
+    return false
   }
 }
 

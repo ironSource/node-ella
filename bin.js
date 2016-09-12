@@ -59,6 +59,31 @@ app
     factory().prune({})
   })
 
+app
+  .command('pack [name...]')
+  .description('Create a tarball from a package')
+  .option('-b --build', 'Run npm build before packing')
+  .option('-o --out [path]', 'Write to file (defaults to "<name>-<version>.<ext>")')
+  .option('-g --gzip', 'Create a gzipped tarball (tgz)')
+  .option('-d --dir [path]', 'Write to a directory instead of a tarball')
+  .option('-f --force', 'Overwrite destination (if --dir)')
+  .action(function(names, options) {
+    factory().pack(names, options)
+  });
+
+app
+  .command('bundle [name...]')
+  .description('Create a self-contained bundle')
+  .option('-b --build', 'Run npm build before bundling')
+  .option('-o --out [path]', 'Write to file (defaults to "<name>-<version>.<ext>")')
+  .option('-g --gzip', 'Create a gzipped tarball (tgz)')
+  .option('-d --dir [path]', 'Write to a directory instead of a tarball')
+  .option('-f --force', 'Overwrite destination (if --dir)')
+  .option('-c --compatible', 'Create an npm-installable bundle')
+  .action(function(names, options) {
+    factory().bundle(names, options)
+  });
+
 app.on('--help', function(){
   console.log('  Examples:\n')
   console.log('    $ multipack install')
