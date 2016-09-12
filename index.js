@@ -86,8 +86,9 @@ E._analyze = function (task, done) {
   // Collect and merge dependencies
   series([
     function readPackages(next) {
-      getPackages(cwd, (err, files) => {
+      getPackages(cwd, (err, files, hasRoot) => {
         if (err) next(err)
+        else if (!hasRoot) next(new SoftError('A root package.json is required.'))
         else each(files, readPackage, next)
       })
     },
