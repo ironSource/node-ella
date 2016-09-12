@@ -7,7 +7,7 @@ const app = require('commander')
 // app.version(require('../package.json').version);
 
 app
-  .option('--prod, --production', 'Ignore devDependencies')
+  .option('-p --production', 'Ignore devDependencies')
   .option('--verbose', 'Verbose output')
 
 app
