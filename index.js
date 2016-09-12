@@ -36,6 +36,8 @@ const getPackages = require('./lib/get-packages')
     , symlink = require('./lib/symlink')
     , errback = require('./lib/errback')
     , log = require('./lib/log')
+    , spawnNpm = require('./lib/spawn-npm')
+    , handleSpawnError = require('./lib/handle-spawn-error')
 
 const join = path.join
     , resolve = path.resolve
@@ -671,53 +673,11 @@ E._spawnGit = function (cwd, args, opts, done) {
 E._spawn = function (cwd, args, opts, done) {
   if (typeof opts === 'function') done = opts, opts = {}
 
-  done = once(done)
-  log.reset()
+  if (this.production && opts.production !== false) {
+    opts.production = true
+  }
 
-  if (this.production) args.push('--production')
-  if (opts.ignoreScripts) args.push('--ignore-scripts')
-
-  // Overrule user config, because we need to:
-  // 1. match log lines prefixed with "npm" (see below)
-  // 2. disable shrinkwrap (would break everything);
-  // 3. resolve dependencies using the same default tag.
-  args.push('--heading=npm')
-  args.push('--no-shrinkwrap')
-  args.push('--tag=latest')
-
-  // Force color on non-tty output
-  args.push(supportsColor ? '--color=always' : '--no-color')
-
-  const child = spawn('npm', args, {
-    cwd: cwd,
-    stdio: [ 'ignore', process.stdout, process.stderr ]
-  })
-
-  child.on('error', handleSpawnError(done))
-  child.on('close', function (code) {
-    if (code) done(new SoftError('npm exited with code ' + code))
-    else done()
-  })
-
-  // This was before "materialized links"
-  // // Lines can contain ANSI escape codes
-  // const skipRe = /npm.+?WARN.+?skippingAction/i
-  // const globRe = /npm.+?WARN.+?prefer global/i
-  //
-  // let emptyLine = false;
-  // child.stderr.pipe(split2()).on('data', function(line) {
-  //   // Strip first and last empty lines
-  //   if (!chalk.stripColor(line).trim()) return emptyLine = true
-  //
-  //   if (!skipRe.test(line) && !globRe.test(line)) {
-  //     if (emptyLine) {
-  //       process.stderr.write('\n')
-  //       emptyLine = false
-  //     }
-  //
-  //     process.stderr.write(line + '\n')
-  //   }
-  // })
+  return spawnNpm(cwd, args, opts, done)
 }
 
 E._eachPackage = function (task, done) {
@@ -952,20 +912,6 @@ E._prunePackage = function (dir, opts, next) {
 
 function isMultipackFile(file) {
   return file.slice(0, FILE_PREFIX.length) === FILE_PREFIX
-}
-
-function handleSpawnError(cb, cmd) {
-  cmd = cmd || 'npm'
-
-  return function (err) {
-    if (err.code === 'ENOENT') {
-      return cb(new Error(
-        `Could not spawn ${cmd}. Please make sure ${cmd} is available in PATH.`
-      ))
-    }
-
-    cb(err)
-  }
 }
 
 function cmpType(a, b) {
