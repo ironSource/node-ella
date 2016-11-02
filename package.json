@@ -1,6 +1,6 @@
 {
   "name": "multipack",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Monorepo package manager",
   "author": "Vincent Weevers",
   "license": "MIT",
