@@ -8,7 +8,7 @@
 
 - Scans for nested packages in the working directory, so you're free to deviate from the convention to place packages in `packages/`.
 - Installs npm dependencies, either to the root `node_modules` or to a package's `node_modules` if there's a version conflict
-- Currently delegates installation to `npm` with a workaround that has an unfortunate side-effect: `multipack i express` behaves like `npm i express && npm update`. We're considering a move to `ied` or `pnpm`.
+- Currently delegates installation to `npm` with a workaround that has an unfortunate side-effect: `multipack i express` behaves like `npm i express && npm update`. We're considering a move to `ied` or `pnpm`. **Update: a rewrite is in the works, with a different install strategy.**
 - Installs local dependencies (one monorepo package depending on another) as symbolic links, if the declared range matches the on-disk version. Otherwise, the package is installed from npm.
 - Has the ability to `bundle` a package with its dependencies for isolated usage
 
