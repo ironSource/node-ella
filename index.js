@@ -35,6 +35,7 @@ const getPackages = require('./lib/get-packages')
     , log = require('./lib/log')
     , spawnNpm = require('./lib/spawn-npm')
     , handleSpawnError = require('./lib/handle-spawn-error')
+    , linkBin = require('./lib/link-bin')
 
 const join = path.join
     , resolve = path.resolve
@@ -348,6 +349,8 @@ E.install = function (input, opts, done) {
     options: opts
   }
 
+  let genericInstall = false
+
   function workToDo(dir, pkgName, deps, tree, task) {
     // TODO: add all packages to subjects by default
     if (task.subjects.length && dir !== ROOT) {
@@ -355,7 +358,7 @@ E.install = function (input, opts, done) {
       if (task.subjects.indexOf(dir) < 0) return false
     }
 
-    const isGenericInstall = task.targets.size === 0
+    const isGenericInstall = genericInstall = task.targets.size === 0
 
     if (isGenericInstall || !task.targets.has(dir)) {
       task.transform = null
@@ -420,7 +423,80 @@ E.install = function (input, opts, done) {
     return modified
   }
 
-  this._eachPackage(task, done)
+  this._eachPackage(task, (err) => {
+    if (err) done(err)
+    else if (genericInstall) this.linkBins(done)
+    else done()
+  })
+}
+
+E.linkBins = function (done) {
+  const links = new Map
+
+  this.packages.forEach((pkg, name) => {
+    const dir = this.dirs[name]
+
+    // In root, and each package that depends on <name>, create a bin link
+    const dependants = Array.from(this.dependants.get(name) || [])
+        , dirs = [ROOT].concat(dependants.map(d => this.dirs[d]))
+        , bin = normalBin(pkg)
+
+    for(let name in bin) {
+      const real = resolve(this.cwd, dir, bin[name])
+
+      for(let dependant of dirs) {
+        const link = resolve(this.cwd, dependant, 'node_modules', '.bin', name)
+        links.set(link, { bin: name, real })
+      }
+    }
+
+    // Additionally, link <mod>/node_modules/<dep> to <mod>/node_modules/.bin
+    for (let dep in pkg.devDependencies) {
+      // Ignore own modules
+      if (this.dirs[dep]) continue
+
+      if (this.tree[dir] && this.tree[dir][dep]) {
+        // Installed to module
+        var nm = join(this.cwd, dir, 'node_modules', dep)
+      } else {
+        // Installed to root
+        nm = join(this.cwd, 'node_modules', dep)
+      }
+
+      let dependencyPkg;
+
+      try {
+        dependencyPkg = JSON.parse(fs.readFileSync(join(nm, 'package.json')))
+      } catch (err) {
+        log.verbose(err)
+        continue
+      }
+
+      const bin = normalBin(dependencyPkg)
+
+      for(let name in bin) {
+        const real = resolve(nm, bin[name])
+        const link = resolve(this.cwd, dir, 'node_modules', '.bin', name)
+        links.set(link, { bin: name, real })
+      }
+    }
+  })
+
+  const next = after(links.size, done)
+
+  links.forEach((info, link) => {
+    linkBin(this.cwd, info.bin, info.real, link, next)
+  })
+
+  function normalBin (pkg) {
+    if (pkg && typeof pkg.bin === 'string') {
+      const bin = {}
+      bin[pkg.name] = pkg.bin
+      return bin
+    } else if (pkg) {
+      return pkg.bin
+    }
+  }
 }
 
 E.update = function (names, opts, done) {
@@ -680,10 +756,10 @@ E._installPackage = function (dir, opts, next) {
   this._spawn(join(this.cwd, dir), ['install'], opts, next)
 }
 
-E._updatePackage = function (dir, names, opts, next) {
-  this._logPackageAction('Updating dependencies of %s', dir)
-  this._spawn(join(this.cwd, dir), ['update'].concat(names), opts, next)
-}
+// E._updatePackage = function (dir, names, opts, next) {
+//   this._logPackageAction('Updating dependencies of %s', dir)
+//   this._spawn(join(this.cwd, dir), ['update'].concat(names), opts, next)
+// }
 
 E._getPackageDependencies = function (dir) {
   const deps = { size: 0 }
